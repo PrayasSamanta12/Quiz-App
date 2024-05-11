@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Difficulty Level Quiz Selector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .difficulty-btn,
+        .action-btn {
+            margin: 5px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: #fff;
+        }
+
+        #options button {
+            margin: 5px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: #fff;
+            display: block;
+            width: 20%;
+            margin: auto;
+            margin-top: 20px;
+
+        }
+
+        .difficulty-btn:hover,
+        button:hover {
+            background-color: #2980b9;
+            transition: 0.5s ease;
+            border: 2px;
+            border-color: darkblue;
+        }
+
+        #options button:hover {
+            background-color: #fff;
+            border: solid 1px;
+            border-color: darkblue;
+            border-radius: 2px;
+            color: black;
+            transition: 0.6s ease;
+        }
+
+        #quiz-container {
+            display: none;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #result-container {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        #score {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Difficulty Level Quiz Selector</h1>
+    <div id="difficulty-selector">
+        <button class="difficulty-btn" onclick="startQuiz('easy')">Easy</button>
+        <button class="difficulty-btn" onclick="startQuiz('medium')">Medium</button>
+        <button class="difficulty-btn" onclick="startQuiz('hard')">Hard</button>
+    </div>
+
+    <div id="quiz-container" style="display: none;">
+        <h2 id="question"></h2>
+        <div id="options"></div>
+        <button onclick="nextQuestion()" class="btn btn-outline-info mt-4" id="Next-btn">Next Question</button>
+        <p id="score"></p>
+    </div>
+
+    <div id="result-container" style="display: none;">
+        <!-- <button class="action-btn" onclick="showScores()" data-bs-toggle="modal" data-bs-target="#exampleModal">Show Scores</button> -->
+        <!-- <button class="action-btn" id="get-answer" onclick="showAnswers()">Show Answers</button> -->
+        <button class="action-btn" onclick="showGrade()">Show Grades</button>
+        <!-- Modalfor showing answers -->
+        <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="exampleModalLabel">Correct answers</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="allAnswers"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="mt-4">
+        <h3 id="Grade">
+
+        </h3>
+    </div>
+
+    <script>
+        let currentQuestionIndex = 0;
+        let questions = [];
+        let score = 0;
+        let scoreHistory = {};
+        let userAnswers = [];
+
+        // Fetch questions from the Open Trivia Database API for the selected difficulty level
+        async function fetchQuestions(difficulty) {
+            const response = await fetch(`https://opentdb.com/api.php?amount=5&type=multiple&difficulty=${difficulty}`);
+            const data = await response.json();
+            questions = data.results;
+            userAnswers = new Array(questions.length);
+            showQuestion();
+        }
+
+        // Start the quiz for the selected difficulty level
+        function startQuiz(difficulty) {
+            document.getElementById('difficulty-selector').style.display = 'none';
+            document.getElementById('quiz-container').style.display = 'block';
+            fetchQuestions(difficulty);
+        }
+
+        // Display the current question and its options
+        function showQuestion() {
+            const currentQuestion = questions[currentQuestionIndex];
+            const questionElement = document.getElementById('question');
+            const optionsContainer = document.getElementById('options');
+
+            questionElement.textContent = currentQuestion.question.toString();
+
+            // Display answer options
+            optionsContainer.innerHTML = '';
+            const allOptions = [...currentQuestion.incorrect_answers];
+            const correctOptionIndex = Math.floor(Math.random() * (allOptions.length + 1));
+            allOptions.splice(correctOptionIndex, 0, currentQuestion.correct_answer);
+
+            allOptions.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.onclick = () => checkAnswer(option === currentQuestion.correct_answer);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        // Check if the selected answer is correct
+        function checkAnswer(isCorrect) {
+            userAnswers[currentQuestionIndex] = isCorrect;
+
+            if (isCorrect) {
+                score++;
+                alert('Correct!');
+                // document.getElementById("CorrectIncorrect").textContent=`Correct!`
+            } else {
+                alert('Incorrect!');
+                // document.getElementById("CorrectIncorrect").textContent=`Incorrect!`
+            }
+
+            // Move to the next question
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                showQuestion();
+            } else {
+                document.getElementById("Next-btn").style.display = 'none';
+                document.getElementById("options").style.display = 'none';
+                document.getElementById("question").style.display = 'none';
+                document.getElementById("result-container").style.display = 'flex';
+                showScore();
+            }
+        }
+
+        // Showing grade
+        function showGrade() {
+            console.log(score)
+            if (score == 5) {
+                // console.log(score)
+                document.getElementById("Grade").textContent = `Grade : A`
+            }
+            else if (score == 4 || score == 3 || score == 2) {
+                document.getElementById("Grade").textContent = `Grade : B`
+                // console.log(score)
+            } else {
+                document.getElementById("Grade").textContent = `Grade : C`
+                // console.log(score)
+            }
+        }
+
+        // Display the final score
+        function showScore() {
+            const scoreElement = document.getElementById('score');
+            scoreElement.textContent = `Your Score: ${score} out of ${questions.length}`;
+            const currentDifficulty = questions[0].difficulty.toLowerCase();
+            if (!scoreHistory[currentDifficulty]) {
+                scoreHistory[currentDifficulty] = [];
+            }
+            scoreHistory[currentDifficulty].push(score);
+            // Send the score to the server
+            fetch('/saveScore', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    difficulty: currentDifficulty,
+                    score: score,
+                }),
+            })
+                .then(response => response.json())
+                .then(data => console.log(data))
+                .catch(error => console.error(error));
+
+            document.getElementById('quiz-container').style.display = 'block';
+            document.getElementById('score').style.display = 'block';
+            document.getElementById('score').style.marginTop = '20px';
+            document.getElementById('score').style.fontSize = '18px';
+            document.getElementById('score').style.fontWeight = 'bold';
+            document.getElementById('score').textContent = `Your Score: ${score} out of ${questions.length}`;
+            document.getElementById('score').innerHTML += '<br><button onclick="showAnswers()" class="action-btn" data-bs-toggle="modal" data-bs-target="#exampleModal">Show Answers</button>';
+        }
+
+        // Move to the next question
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                showQuestion();
+            } else {
+                document.getElementById("Next-btn").style.display = 'none';
+                document.getElementById("options").style.display = 'none';
+                document.getElementById("question").style.display = 'none';
+                document.getElementById("result-container").style.display = 'flex'
+                showScore();
+            }
+        }
+
+        // Show scores for each difficulty level
+        function showScores() {
+            let scoresText = 'Scores:\n';
+            for (const difficulty in scoreHistory) {
+                scoresText += `${difficulty}: ${scoreHistory[difficulty].join(', ')}\n`;
+            }
+            alert(scoresText);
+        }
+
+        // Show correct answers for all questions
+        function showAnswers() {
+            let answersText = '\n';
+            questions.forEach((question, index) => {
+                const userAnswer = userAnswers[index];
+                const correctAnswer = question.correct_answer;
+                answersText += `Q${index + 1}: ${userAnswer ? 'Correct' : 'Incorrect'} - ${correctAnswer}(Correct Answer)<br>`;
+            });
+            // alert(answersText);
+            document.getElementById("allAnswers").innerHTML = answersText
+        }
+
+        // Reset the quiz
+        function resetQuiz() {
+            currentQuestionIndex = 0;
+            questions = [];
+            score = 0;
+            userAnswers = [];
+            document.getElementById('difficulty-selector').style.display = 'block';
+            document.getElementById('quiz-container').style.display = 'none';
+            document.getElementById('question').textContent = '';
+            document.getElementById('options').innerHTML = '';
+            document.getElementById('score').textContent = '';
+            document.getElementById('score').style.display = 'none';
+            document.getElementById('score').style.marginTop = '0';
+            document.getElementById('score').style.fontSize = '16px';
+            document.getElementById('score').style.fontWeight = 'normal';
+        }
+
+
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+
+</body>
+
+</html>
